@@ -127,7 +127,8 @@ where
             params
         );
 
-        let mut query = query_as::<_, LogHeightRow>(&query_str).bind(author.to_string());
+        let mut query =
+            query_as::<_, LogHeightRow>(sqlx::AssertSqlSafe(query_str)).bind(author.to_string());
 
         for log_id in encoded_log_ids {
             query = query.bind(log_id)
@@ -179,16 +180,17 @@ where
             after_operator
         );
 
-        let log_meta: Option<LogMetaRow> = query_as::<_, LogMetaRow>(&query_str)
-            .bind(author.to_string())
-            .bind(
-                encode_cbor(&log_id)
-                    .map_err(|err| SqliteError::Encode("log id".to_string(), err))?,
-            )
-            .bind(after.unwrap_or(0).to_string())
-            .bind(until.unwrap_or(u64::MAX).to_string())
-            .fetch_optional(&self.pool)
-            .await?;
+        let log_meta: Option<LogMetaRow> =
+            query_as::<_, LogMetaRow>(sqlx::AssertSqlSafe(query_str))
+                .bind(author.to_string())
+                .bind(
+                    encode_cbor(&log_id)
+                        .map_err(|err| SqliteError::Encode("log id".to_string(), err))?,
+                )
+                .bind(after.unwrap_or(0).to_string())
+                .bind(until.unwrap_or(u64::MAX).to_string())
+                .fetch_optional(&self.pool)
+                .await?;
 
         if let Some(row) = log_meta {
             let (total_header_bytes, total_payload_bytes, total_operation_count) =
@@ -234,7 +236,7 @@ where
             after_operator
         );
 
-        let operations = query_as::<_, OperationRow>(&query_str)
+        let operations = query_as::<_, OperationRow>(sqlx::AssertSqlSafe(query_str))
             .bind(author.to_string())
             .bind(
                 encode_cbor(&log_id)

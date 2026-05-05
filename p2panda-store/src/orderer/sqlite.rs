@@ -344,7 +344,9 @@ where
                     .join(",")
             );
 
-            let result: (i64,) = query_as(&sql).fetch_one(&mut **tx).await?;
+            let result: (i64,) = query_as(sqlx::AssertSqlSafe(sql))
+                .fetch_one(&mut **tx)
+                .await?;
             Ok(result.0 as usize == dependencies.len())
         })
         .await

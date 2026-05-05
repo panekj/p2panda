@@ -8,7 +8,7 @@ use std::time::Duration;
 use p2panda_core::cbor::{decode_cbor, encode_cbor};
 use p2panda_core::{PublicKey, Topic};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{SqlSafeStr, query, query_as, query_scalar};
 
 use crate::address_book::{AddressBookStore, NodeInfo};
 use crate::sqlite::{SqliteError, SqliteStore};
@@ -131,15 +131,15 @@ where
 
         // Remove associated topics for removed nodes.
         self.tx(async |tx| {
-            query(&format!(
+            query(
                 "
-                DELETE FROM
-                    topics2node_infos_v1
-                WHERE
-                    node_id IN ({})
-                ",
-                in_op_str(&node_ids)
-            ))
+            DELETE FROM
+                topics2node_infos_v1
+            WHERE
+                node_id IN ($1)
+            ",
+            )
+            .bind(in_op_str(&node_ids))
             .execute(&mut **tx)
             .await
             .map_err(SqliteError::Sqlite)
@@ -266,17 +266,17 @@ where
     async fn selected_node_infos(&self, ids: &[PublicKey]) -> Result<Vec<N>, Self::Error> {
         let result = self
             .execute(async |pool| {
-                query_as::<_, (Vec<u8>,)>(&format!(
+                query_as::<_, (Vec<u8>,)>(
                     "
                     SELECT
                         node_info
                     FROM
                         node_infos_v1
                     WHERE
-                        node_id IN ({})
+                        node_id IN ($1)
                     ",
-                    in_op_str(ids)
-                ))
+                )
+                .bind(in_op_str(ids))
                 .fetch_all(pool)
                 .await
                 .map_err(SqliteError::Sqlite)
@@ -334,7 +334,7 @@ where
     async fn node_infos_by_topics(&self, topics: &[Topic]) -> Result<Vec<N>, Self::Error> {
         let result = self
             .execute(async |pool| {
-                query_as::<_, (Vec<u8>,)>(&format!(
+                query_as::<_, (Vec<u8>,)>(
                     "
                     SELECT
                         node_infos_v1.node_info
@@ -343,12 +343,12 @@ where
                     LEFT JOIN topics2node_infos_v1
                         ON node_infos_v1.node_id = topics2node_infos_v1.node_id
                     WHERE
-                        topics2node_infos_v1.topic_id IN ({})
+                        topics2node_infos_v1.topic_id IN ($1)
                     GROUP BY
                         node_infos_v1.node_id
                     ",
-                    in_op_str(topics)
-                ))
+                )
+                .bind(in_op_str(topics))
                 .fetch_all(pool)
                 .await
                 .map_err(SqliteError::Sqlite)
