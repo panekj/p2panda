@@ -8,7 +8,7 @@ use std::time::Duration;
 use p2panda_core::cbor::{decode_cbor, encode_cbor};
 use p2panda_core::{PublicKey, Topic};
 use serde::{Deserialize, Serialize};
-use sqlx::{SqlSafeStr, query, query_as, query_scalar};
+use sqlx::{query, query_as, query_scalar};
 
 use crate::address_book::{AddressBookStore, NodeInfo};
 use crate::sqlite::{SqliteError, SqliteStore};
